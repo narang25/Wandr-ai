@@ -55,7 +55,7 @@ class ApiClient {
     return this.request<{ trip: import('./types').Trip }>(`/api/trips/${id}`);
   }
 
-  async createTrip(data: { destination: string; days: number; budget: string; interests: string[] }) {
+  async createTrip(data: { destination: string; startDate: string; days: number; budget: string; interests: string[] }) {
     return this.request<{ trip: import('./types').Trip }>('/api/trips', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -65,6 +65,28 @@ class ApiClient {
   async generateTrip(id: string) {
     return this.request<{ message: string; trip: import('./types').Trip }>(`/api/trips/${id}/generate`, {
       method: 'POST',
+    });
+  }
+
+  // Itinerary Editing
+  async removeActivity(tripId: string, dayIndex: number, activityId: string) {
+    return this.request<{ trip: import('./types').Trip }>(`/api/trips/${tripId}/itinerary/remove`, {
+      method: 'PUT',
+      body: JSON.stringify({ dayIndex, activityId }),
+    });
+  }
+
+  async addActivity(tripId: string, dayIndex: number, activity: { time: string; name: string; description: string; category: string; estimatedCost: number }) {
+    return this.request<{ trip: import('./types').Trip }>(`/api/trips/${tripId}/itinerary/add`, {
+      method: 'PUT',
+      body: JSON.stringify({ dayIndex, activity }),
+    });
+  }
+
+  async regenerateDay(tripId: string, dayNumber: number, instructions?: string) {
+    return this.request<{ trip: import('./types').Trip }>(`/api/trips/${tripId}/regenerate-day`, {
+      method: 'POST',
+      body: JSON.stringify({ dayNumber, instructions }),
     });
   }
 }

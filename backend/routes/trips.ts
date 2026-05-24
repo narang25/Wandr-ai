@@ -123,4 +123,199 @@ router.post('/:id/generate', generateLimiter, async (req: AuthRequest, res: Resp
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Itinerary Editing Endpoints
+// ─────────────────────────────────────────────────────────────────────────────
+
+// PUT /api/trips/:id/itinerary/remove - Remove an activity
+router.put(
+  '/:id/itinerary/remove',
+  [
+    body('dayIndex').isInt({ min: 0 }).withMessage('Valid day index is required'),
+    body('activityId').isString().notEmpty().withMessage('Activity ID is required'),
+  ],
+  handleValidationErrors,
+  async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const trip = await Trip.findOne({
+        _id: req.params.id,
+        userId: req.user!.userId,
+      });
+
+      if (!trip) {
+        res.status(404).json({ error: 'Trip not found' });
+        return;
+      }
+
+      const { dayIndex, activityId } = req.body;
+
+      if (!trip.itinerary[dayIndex]) {
+        res.status(400).json({ error: 'Invalid day index' });
+        return;
+      }
+
+      trip.itinerary[dayIndex].activities = trip.itinerary[dayIndex].activities.filter(
+        (a: any) => a.id !== activityId
+      );
+
+      trip.markModified('itinerary');
+      await trip.save();
+      res.json({ trip });
+    } catch (error) {
+      console.error('Remove activity error:', error);
+      res.status(500).json({ error: 'Failed to remove activity' });
+    }
+  }
+);
+
+// PUT /api/trips/:id/itinerary/add - Add a custom activity
+router.put(
+  '/:id/itinerary/add',
+  [
+    body('dayIndex').isInt({ min: 0 }).withMessage('Valid day index is required'),
+    body('activity.name').isString().notEmpty().withMessage('Activity name is required'),
+    body('activity.time').isString().notEmpty().withMessage('Activity time is required'),
+  ],
+  handleValidationErrors,
+  async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const trip = await Trip.findOne({
+        _id: req.params.id,
+        userId: req.user!.userId,
+      });
+
+      if (!trip) {
+        res.status(404).json({ error: 'Trip not found' });
+        return;
+      }
+
+      const { dayIndex, activity } = req.body;
+
+      if (!trip.itinerary[dayIndex]) {
+        res.status(400).json({ error: 'Invalid day index' });
+        return;
+      }
+
+      const newActivity = {
+        id: `custom-${Date.now()}`,
+        time: activity.time,
+        name: activity.name,
+        description: activity.description || '',
+        category: activity.category || 'Custom',
+        estimatedCost: activity.estimatedCost || 0,
+        location: activity.location || { lat: 0, lng: 0 },
+      };
+
+      trip.itinerary[dayIndex].activities.push(newActivity);
+
+      // Sort activities by time
+      trip.itinerary[dayIndex].activities.sort((a: any, b: any) =>
+        a.time.localeCompare(b.time)
+      );
+
+      trip.markModified('itinerary');
+      await trip.save();
+      res.json({ trip });
+    } catch (error) {
+      console.error('Add activity error:', error);
+      res.status(500).json({ error: 'Failed to add activity' });
+    }
+  }
+);
+
+// POST /api/trips/:id/regenerate-day - Regenerate a specific day using AI
+router.post(
+  '/:id/regenerate-day',
+  generateLimiter,
+  [
+    body('dayNumber').isInt({ min: 1 }).withMessage('Valid day number is required'),
+  ],
+  handleValidationErrors,
+  async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const trip = await Trip.findOne({
+        _id: req.params.id,
+        userId: req.user!.userId,
+      });
+
+      if (!trip) {
+        res.status(404).json({ error: 'Trip not found' });
+        return;
+      }
+
+      const { dayNumber, instructions } = req.body;
+      const dayIdx = dayNumber - 1;
+
+      if (!trip.itinerary[dayIdx]) {
+        res.status(400).json({ error: `Day ${dayNumber} does not exist` });
+        return;
+      }
+
+      const regeneratePrompt = `You are an expert travel planner. Regenerate ONLY Day ${dayNumber} of a ${trip.days}-day trip to ${trip.destination}.
+
+Budget Level: ${trip.budget}
+Interests: ${trip.interests.join(', ')}
+${instructions ? `Special Instructions: ${instructions}` : ''}
+
+You MUST respond with ONLY a valid JSON object matching this exact structure:
+{
+  "day": ${dayNumber},
+  "title": "Day title here",
+  "activities": [
+    {
+      "id": "day${dayNumber}-act1",
+      "time": "09:00",
+      "name": "Activity Name",
+      "description": "1-2 sentence description",
+      "category": "Category",
+      "estimatedCost": 0,
+      "location": { "lat": 0.0, "lng": 0.0 }
+    }
+  ]
+}
+
+Provide 4-6 realistic activities with real coordinates for ${trip.destination}. Do not include markdown or conversational text.`;
+
+      const groqKey = process.env.GROQ_API_KEY;
+      if (!groqKey) {
+        res.status(500).json({ error: 'AI service not configured' });
+        return;
+      }
+
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${groqKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+          messages: [
+            { role: 'system', content: 'You are a travel planner that outputs valid JSON only.' },
+            { role: 'user', content: regeneratePrompt },
+          ],
+          temperature: 0.8,
+          response_format: { type: 'json_object' },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to regenerate day from AI');
+      }
+
+      const data = await response.json();
+      const parsed = JSON.parse(data.choices[0].message.content);
+
+      trip.itinerary[dayIdx] = parsed;
+      trip.markModified('itinerary');
+      await trip.save();
+
+      res.json({ trip });
+    } catch (error) {
+      console.error('Regenerate day error:', error);
+      res.status(500).json({ error: 'Failed to regenerate day' });
+    }
+  }
+);
+
 export default router;

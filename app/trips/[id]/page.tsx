@@ -1,16 +1,18 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTrip } from '@/hooks/useTrip';
-import { Trip, DayPlan, Hotel } from '@/lib/types';
+import { Trip, DayPlan, Hotel, Activity } from '@/lib/types';
+import { api } from '@/lib/api';
 import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { 
   MapPin, Calendar, DollarSign, Clock, Map, 
-  ChevronLeft, Info, Compass, Share2
+  ChevronLeft, Info, Compass, Share2,
+  Trash2, Plus, RefreshCw, X
 } from 'lucide-react';
 import { ChatWidget } from '@/components/features/chat/ChatWidget';
 import { MapView } from '@/components/features/trips/MapView';
@@ -24,6 +26,10 @@ export default function TripPage({ params }: { params: Promise<{ id: string }> }
   const [activeTab, setActiveTab] = useState<'itinerary' | 'map' | 'hotels' | 'budget'>('itinerary');
 
   useEffect(() => {
+    fetchTrip(id);
+  }, [id, fetchTrip]);
+
+  const refreshTrip = useCallback(() => {
     fetchTrip(id);
   }, [id, fetchTrip]);
 
@@ -52,7 +58,7 @@ export default function TripPage({ params }: { params: Promise<{ id: string }> }
 
   return (
     <main className="min-h-screen bg-void pb-24 relative overflow-hidden">
-      {/* Dynamic Blurred Background based on destination name length/hash to give it some uniqueness */}
+      {/* Dynamic Blurred Background */}
       <div className="absolute top-0 inset-x-0 h-[600px] bg-gradient-to-b from-primary/10 via-violet/5 to-void pointer-events-none" />
       <div className="absolute top-0 right-0 w-1/2 h-96 bg-primary/20 blur-[150px] pointer-events-none rounded-full" />
       <div className="absolute top-40 left-0 w-1/2 h-96 bg-violet/20 blur-[150px] pointer-events-none rounded-full" />
@@ -166,7 +172,7 @@ export default function TripPage({ params }: { params: Promise<{ id: string }> }
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
-              {activeTab === 'itinerary' && <ItineraryTab itinerary={trip.itinerary} />}
+              {activeTab === 'itinerary' && <ItineraryTab itinerary={trip.itinerary} tripId={trip._id} onUpdate={refreshTrip} />}
               {activeTab === 'map' && <MapView itinerary={trip.itinerary} centerLat={trip.quickFacts?.location?.lat} centerLng={trip.quickFacts?.location?.lng} />}
               {activeTab === 'hotels' && <HotelsTab hotels={trip.hotels} />}
               {activeTab === 'budget' && <BudgetTab breakdown={trip.budgetBreakdown} />}
@@ -220,10 +226,59 @@ export default function TripPage({ params }: { params: Promise<{ id: string }> }
 // Subcomponents
 // ─────────────────────────────────────────────────────────────────────────────
 
-function ItineraryTab({ itinerary }: { itinerary: DayPlan[] }) {
+function ItineraryTab({ itinerary, tripId, onUpdate }: { itinerary: DayPlan[]; tripId: string; onUpdate: () => void }) {
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const [addingToDay, setAddingToDay] = useState<number | null>(null);
+  const [regenerateDay, setRegenerateDay] = useState<number | null>(null);
+  const [regenerateInstructions, setRegenerateInstructions] = useState('');
+
+  // New activity form state
+  const [newActivity, setNewActivity] = useState({ time: '12:00', name: '', description: '', category: 'Custom', estimatedCost: 0 });
+
   if (!itinerary || itinerary.length === 0) {
     return <div className="text-muted text-lg bg-card/30 p-8 rounded-3xl border border-subtle">No itinerary data available.</div>;
   }
+
+  const handleRemoveActivity = async (dayIndex: number, activityId: string) => {
+    setLoadingAction(`remove-${activityId}`);
+    try {
+      await api.removeActivity(tripId, dayIndex, activityId);
+      onUpdate();
+    } catch (err) {
+      console.error('Failed to remove activity:', err);
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleAddActivity = async (dayIndex: number) => {
+    if (!newActivity.name.trim()) return;
+    setLoadingAction(`add-${dayIndex}`);
+    try {
+      await api.addActivity(tripId, dayIndex, newActivity);
+      setNewActivity({ time: '12:00', name: '', description: '', category: 'Custom', estimatedCost: 0 });
+      setAddingToDay(null);
+      onUpdate();
+    } catch (err) {
+      console.error('Failed to add activity:', err);
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleRegenerateDay = async (dayNumber: number) => {
+    setLoadingAction(`regen-${dayNumber}`);
+    try {
+      await api.regenerateDay(tripId, dayNumber, regenerateInstructions || undefined);
+      setRegenerateDay(null);
+      setRegenerateInstructions('');
+      onUpdate();
+    } catch (err) {
+      console.error('Failed to regenerate day:', err);
+    } finally {
+      setLoadingAction(null);
+    }
+  };
 
   return (
     <div className="space-y-16">
@@ -237,12 +292,136 @@ function ItineraryTab({ itinerary }: { itinerary: DayPlan[] }) {
         >
           {/* Day Header */}
           <div className="sticky top-0 bg-void/80 backdrop-blur-xl py-6 z-20 mb-8 border-b border-subtle/30">
-            <h2 className="text-3xl font-display font-bold text-bright flex items-center gap-5">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-violet flex items-center justify-center text-void shadow-[0_0_20px_rgba(0,229,255,0.3)]">
-                D{day.day}
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-3xl font-display font-bold text-bright flex items-center gap-5">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-violet flex items-center justify-center text-void shadow-[0_0_20px_rgba(0,229,255,0.3)]">
+                  D{day.day}
+                </div>
+                {day.title}
+              </h2>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={() => setAddingToDay(addingToDay === dayIdx ? null : dayIdx)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors cursor-pointer"
+                >
+                  <Plus size={16} />
+                  Add
+                </button>
+                <button
+                  onClick={() => setRegenerateDay(regenerateDay === day.day ? null : day.day)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-violet/10 text-violet border border-violet/20 hover:bg-violet/20 transition-colors cursor-pointer"
+                >
+                  <RefreshCw size={16} className={loadingAction === `regen-${day.day}` ? 'animate-spin' : ''} />
+                  Regenerate
+                </button>
               </div>
-              {day.title}
-            </h2>
+            </div>
+
+            {/* Regenerate Day Panel */}
+            <AnimatePresence>
+              {regenerateDay === day.day && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-6 p-6 rounded-2xl bg-violet/5 border border-violet/20 backdrop-blur-md">
+                    <p className="text-sm text-muted mb-3">Optional: Give instructions for the regenerated day</p>
+                    <input
+                      value={regenerateInstructions}
+                      onChange={(e) => setRegenerateInstructions(e.target.value)}
+                      placeholder="e.g. More outdoor activities, focus on food, etc."
+                      className="w-full bg-card/60 border border-subtle text-bright px-4 py-3 rounded-xl mb-4 focus:outline-none focus:border-violet placeholder:text-muted/50"
+                    />
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => handleRegenerateDay(day.day)}
+                        disabled={loadingAction === `regen-${day.day}`}
+                        className="px-6 py-2.5 rounded-xl bg-violet text-void font-bold text-sm hover:bg-violet/90 transition-colors disabled:opacity-50 cursor-pointer"
+                      >
+                        {loadingAction === `regen-${day.day}` ? 'Regenerating...' : `Regenerate Day ${day.day}`}
+                      </button>
+                      <button
+                        onClick={() => { setRegenerateDay(null); setRegenerateInstructions(''); }}
+                        className="px-4 py-2.5 rounded-xl bg-card border border-subtle text-muted font-bold text-sm hover:text-bright transition-colors cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Add Activity Form */}
+            <AnimatePresence>
+              {addingToDay === dayIdx && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-6 p-6 rounded-2xl bg-primary/5 border border-primary/20 backdrop-blur-md">
+                    <h4 className="text-bright font-bold mb-4 flex items-center gap-2">
+                      <Plus size={18} className="text-primary" />
+                      Add Activity to Day {day.day}
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                      <input
+                        value={newActivity.name}
+                        onChange={(e) => setNewActivity({ ...newActivity, name: e.target.value })}
+                        placeholder="Activity name *"
+                        className="bg-card/60 border border-subtle text-bright px-4 py-3 rounded-xl focus:outline-none focus:border-primary placeholder:text-muted/50"
+                      />
+                      <input
+                        type="time"
+                        value={newActivity.time}
+                        onChange={(e) => setNewActivity({ ...newActivity, time: e.target.value })}
+                        className="bg-card/60 border border-subtle text-bright px-4 py-3 rounded-xl focus:outline-none focus:border-primary [color-scheme:dark]"
+                      />
+                      <input
+                        value={newActivity.description}
+                        onChange={(e) => setNewActivity({ ...newActivity, description: e.target.value })}
+                        placeholder="Description (optional)"
+                        className="bg-card/60 border border-subtle text-bright px-4 py-3 rounded-xl focus:outline-none focus:border-primary placeholder:text-muted/50"
+                      />
+                      <select
+                        value={newActivity.category}
+                        onChange={(e) => setNewActivity({ ...newActivity, category: e.target.value })}
+                        className="bg-card/60 border border-subtle text-bright px-4 py-3 rounded-xl focus:outline-none focus:border-primary"
+                      >
+                        <option value="Custom">Custom</option>
+                        <option value="Food">Food</option>
+                        <option value="Culture">Culture</option>
+                        <option value="Adventure">Adventure</option>
+                        <option value="Shopping">Shopping</option>
+                        <option value="Nature">Nature</option>
+                        <option value="Logistics">Logistics</option>
+                      </select>
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => handleAddActivity(dayIdx)}
+                        disabled={!newActivity.name.trim() || loadingAction === `add-${dayIdx}`}
+                        className="px-6 py-2.5 rounded-xl bg-primary text-void font-bold text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 cursor-pointer"
+                      >
+                        {loadingAction === `add-${dayIdx}` ? 'Adding...' : 'Add Activity'}
+                      </button>
+                      <button
+                        onClick={() => setAddingToDay(null)}
+                        className="px-4 py-2.5 rounded-xl bg-card border border-subtle text-muted font-bold text-sm hover:text-bright transition-colors cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           
           <div className="space-y-8 pl-6 border-l-4 border-subtle/30 ml-7">
@@ -267,12 +446,22 @@ function ItineraryTab({ itinerary }: { itinerary: DayPlan[] }) {
                       <p className="text-muted text-base leading-relaxed break-words">{activity.description}</p>
                     </div>
                     
-                    {activity.estimatedCost > 0 && (
-                      <div className="shrink-0 flex items-center gap-1.5 text-gold bg-gold/10 border border-gold/20 px-4 py-2 rounded-xl font-bold text-lg">
-                        <DollarSign size={18} />
-                        {activity.estimatedCost}
-                      </div>
-                    )}
+                    <div className="flex items-center gap-3 shrink-0">
+                      {activity.estimatedCost > 0 && (
+                        <div className="flex items-center gap-1.5 text-gold bg-gold/10 border border-gold/20 px-4 py-2 rounded-xl font-bold text-lg">
+                          <DollarSign size={18} />
+                          {activity.estimatedCost}
+                        </div>
+                      )}
+                      <button
+                        onClick={() => handleRemoveActivity(dayIdx, activity.id)}
+                        disabled={loadingAction === `remove-${activity.id}`}
+                        className="p-2.5 rounded-xl bg-danger/10 text-danger border border-danger/20 hover:bg-danger/20 transition-all opacity-0 group-hover:opacity-100 cursor-pointer disabled:opacity-50"
+                        title="Remove activity"
+                      >
+                        {loadingAction === `remove-${activity.id}` ? <Spinner size="sm" /> : <Trash2 size={16} />}
+                      </button>
+                    </div>
                   </div>
                 </Card>
               </div>
