@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, DollarSign, ArrowRightLeft } from 'lucide-react';
+import { RefreshCw, Banknote, ArrowRightLeft } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 
@@ -45,7 +45,7 @@ export function CurrencyConverter({ baseCurrency = 'USD', targetCurrency = 'EUR'
     <Card className="bg-card/40 backdrop-blur-md border border-subtle overflow-hidden">
       <div className="p-4 border-b border-subtle/50 flex items-center justify-between bg-black/10">
         <h3 className="font-bold flex items-center gap-2 text-bright">
-          <DollarSign size={18} className="text-primary" />
+          <Banknote size={18} className="text-primary" />
           Currency Converter
         </h3>
         <button onClick={fetchRates} className="text-muted hover:text-bright transition-colors">

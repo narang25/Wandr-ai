@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Trip } from '@/lib/types';
 import { api } from '@/lib/api';
-import { MapPin, Calendar, Clock, DollarSign, Trash2, Copy } from 'lucide-react';
+import { MapPin, Calendar, Clock, Banknote, Trash2, Copy } from 'lucide-react';
 
 interface TripCardProps {
   trip: Trip;
@@ -135,7 +135,7 @@ export function TripCard({ trip, onDelete, onDuplicate }: TripCardProps) {
               <span>{trip.days} {trip.days === 1 ? 'Day' : 'Days'}</span>
             </div>
             <div className="flex items-center gap-2">
-              <DollarSign size={16} className="text-dim" />
+              <Banknote size={16} className="text-dim" />
               <span>{trip.budget} Budget</span>
             </div>
             <div className="flex items-center gap-2">

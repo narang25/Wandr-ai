@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useTrip } from '@/hooks/useTrip';
 import { Button } from '@/components/ui/Button';
 import { StepIndicator } from '@/components/features/trips/StepIndicator';
-import { MapPin, Calendar, DollarSign, Heart, Sparkles, ChevronLeft } from 'lucide-react';
+import { MapPin, Calendar, Wallet, Heart, Sparkles, ChevronLeft } from 'lucide-react';
 
 const INTEREST_OPTIONS = [
   'Food & Dining', 'Culture & History', 'Adventure', 'Shopping',
@@ -183,7 +183,7 @@ export default function NewTripPage() {
               <motion.div key="step3" initial="enter" animate="center" exit="exit" variants={slideVariants} className="space-y-10 text-center">
                 <div>
                   <div className="w-20 h-20 rounded-[2rem] bg-gold/10 flex items-center justify-center mx-auto mb-8 text-gold shadow-[0_0_30px_rgba(251,191,36,0.2)] border border-gold/20">
-                    <DollarSign size={40} />
+                    <Wallet size={40} />
                   </div>
                   <h2 className="text-4xl md:text-5xl font-display font-bold text-bright mb-4">What's the budget?</h2>
                   <p className="text-muted text-lg">We'll tailor hotel and activity recommendations to match.</p>

@@ -69,6 +69,7 @@ You MUST respond with ONLY a valid JSON object matching the exact structure belo
 }
 
 Ensure the itinerary has exactly ${trip.days} days. Generate realistic, detailed activities and costs suited for a ${trip.budget} budget.
+CRITICAL INSTRUCTION: ALL costs (in budgetBreakdown, activities, and hotels) MUST be calculated in the destination's LOCAL currency scale. Do NOT use USD values with a different symbol. Provide realistic numerical values for that specific currency (e.g., if the currency is INR, a meal might be 500-2000, not 10-20).
 CRITICAL INSTRUCTION: You MUST provide realistic "lat" and "lng" coordinates for the destination (in quickFacts.location) AND for every single activity (in activity.location). Do not leave them blank or omit them.
 `;
 

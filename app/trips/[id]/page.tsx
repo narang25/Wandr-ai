@@ -10,7 +10,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { 
-  MapPin, Calendar, DollarSign, Clock, Map, 
+  MapPin, Calendar, Banknote, Clock, Map, 
   ChevronLeft, Info, Compass, Share2,
   Trash2, Plus, RefreshCw, X, FileText, Package, Check
 } from 'lucide-react';
@@ -183,7 +183,7 @@ export default function TripPage({ params }: { params: Promise<{ id: string }> }
           </div>
           <div className="hidden sm:block w-px h-10 bg-subtle" />
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center text-gold"><DollarSign size={20} /></div>
+            <div className="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center text-gold"><Banknote size={20} /></div>
             <div>
               <p className="text-muted text-xs font-bold uppercase tracking-wider mb-0.5">Currency</p>
               <p className="text-bright font-medium">{trip.quickFacts?.currency || 'Local'}</p>

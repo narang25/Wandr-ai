@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
 import { 
-  MapPin, Calendar, DollarSign, Clock, Map, 
+  MapPin, Calendar, Banknote, Clock, Map, 
   ChevronLeft, Compass, FileText, Package
 } from 'lucide-react';
 import { MapView } from '@/components/features/trips/MapView';
@@ -127,7 +127,7 @@ export default function PublicTripPage({ params }: { params: Promise<{ id: strin
                     {trip.days} Days
                   </Badge>
                   <Badge className="px-3 py-1 text-sm bg-violet/10 text-violet border border-violet/20">
-                    <DollarSign size={14} className="mr-1" />
+                    <Banknote size={14} className="mr-1" />
                     {trip.budget}
                   </Badge>
                   <Badge className="px-3 py-1 text-sm bg-card border-subtle text-muted">
