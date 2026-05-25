@@ -235,10 +235,10 @@ export default function TripPage({ params }: { params: Promise<{ id: string }> }
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
-              {activeTab === 'itinerary' && <ItineraryTab itinerary={trip.itinerary} tripId={trip._id} onUpdate={refreshTrip} />}
+              {activeTab === 'itinerary' && <ItineraryTab itinerary={trip.itinerary} tripId={trip._id} onUpdate={refreshTrip} currencySymbol={trip.quickFacts?.currencySymbol || '$'} />}
               {activeTab === 'map' && <MapView itinerary={trip.itinerary} centerLat={trip.quickFacts?.location?.lat} centerLng={trip.quickFacts?.location?.lng} />}
-              {activeTab === 'hotels' && <HotelsTab hotels={trip.hotels} />}
-              {activeTab === 'budget' && <BudgetTab breakdown={trip.budgetBreakdown} />}
+              {activeTab === 'hotels' && <HotelsTab hotels={trip.hotels} currencySymbol={trip.quickFacts?.currencySymbol || '$'} />}
+              {activeTab === 'budget' && <BudgetTab breakdown={trip.budgetBreakdown} currencySymbol={trip.quickFacts?.currencySymbol || '$'} />}
               {activeTab === 'packing' && <PackingList tripId={trip._id} />}
             </motion.div>
           </AnimatePresence>
@@ -259,7 +259,7 @@ export default function TripPage({ params }: { params: Promise<{ id: string }> }
               <div className="flex justify-between items-center border-b border-subtle/50 pb-4">
                 <span className="text-muted font-medium">Total Est. Cost</span>
                 <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet text-lg">
-                  ${trip.budgetBreakdown?.total?.toLocaleString() || 0}
+                  {trip.quickFacts?.currencySymbol || '$'}{trip.budgetBreakdown?.total?.toLocaleString() || 0}
                 </span>
               </div>
               <div className="flex justify-between items-center pb-2">
@@ -292,7 +292,7 @@ export default function TripPage({ params }: { params: Promise<{ id: string }> }
 // Subcomponents
 // ─────────────────────────────────────────────────────────────────────────────
 
-function ItineraryTab({ itinerary, tripId, onUpdate }: { itinerary: DayPlan[]; tripId: string; onUpdate: () => void }) {
+function ItineraryTab({ itinerary, tripId, onUpdate, currencySymbol = '$' }: { itinerary: DayPlan[]; tripId: string; onUpdate: () => void; currencySymbol?: string }) {
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [addingToDay, setAddingToDay] = useState<number | null>(null);
   const [regenerateDay, setRegenerateDay] = useState<number | null>(null);
@@ -515,7 +515,7 @@ function ItineraryTab({ itinerary, tripId, onUpdate }: { itinerary: DayPlan[]; t
                     <div className="flex items-center gap-3 shrink-0">
                       {activity.estimatedCost > 0 && (
                         <div className="flex items-center gap-1.5 text-gold bg-gold/10 border border-gold/20 px-4 py-2 rounded-xl font-bold text-lg">
-                          <DollarSign size={18} />
+                          <span className="text-xl">{currencySymbol}</span>
                           {activity.estimatedCost}
                         </div>
                       )}
@@ -539,7 +539,7 @@ function ItineraryTab({ itinerary, tripId, onUpdate }: { itinerary: DayPlan[]; t
   );
 }
 
-function HotelsTab({ hotels }: { hotels: Hotel[] }) {
+function HotelsTab({ hotels, currencySymbol = '$' }: { hotels: Hotel[], currencySymbol?: string }) {
   if (!hotels || hotels.length === 0) {
     return <div className="text-muted text-lg bg-card/30 p-8 rounded-3xl border border-subtle">No hotel data available.</div>;
   }
@@ -571,7 +571,7 @@ function HotelsTab({ hotels }: { hotels: Hotel[] }) {
                 <div className="flex justify-between items-start mb-3">
                   <h3 className="font-display font-bold text-2xl text-bright group-hover:text-primary transition-colors">{hotel.name}</h3>
                   <div className="text-right shrink-0 ml-4">
-                    <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet">${hotel.pricePerNight}</span>
+                    <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet">{currencySymbol}{hotel.pricePerNight}</span>
                     <span className="text-xs text-muted block uppercase tracking-wide">per night</span>
                   </div>
                 </div>
@@ -622,7 +622,7 @@ function BudgetTab({ breakdown }: { breakdown: any }) {
           
           <p className="text-muted mb-4 uppercase tracking-[0.2em] text-sm font-bold relative z-10">Estimated Total Cost</p>
           <h2 className="text-6xl sm:text-8xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet relative z-10 tracking-tight">
-            ${total.toLocaleString()}
+            {currencySymbol}{total.toLocaleString()}
           </h2>
         </Card>
       </motion.div>
@@ -642,7 +642,7 @@ function BudgetTab({ breakdown }: { breakdown: any }) {
               <div className="flex justify-between items-end text-lg">
                 <span className="text-bright font-medium">{item.label}</span>
                 <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-muted to-bright">
-                  ${(item.value || 0).toLocaleString()}
+                  {currencySymbol}{(item.value || 0).toLocaleString()}
                 </span>
               </div>
               <div className="h-4 w-full bg-subtle rounded-full overflow-hidden shadow-inner">

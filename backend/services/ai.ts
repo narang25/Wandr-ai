@@ -58,6 +58,7 @@ You MUST respond with ONLY a valid JSON object matching the exact structure belo
   "quickFacts": {
     "bestTimeToVisit": "Spring or Fall",
     "currency": "USD",
+    "currencySymbol": "$",
     "language": "English",
     "timezone": "UTC-5",
     "location": {

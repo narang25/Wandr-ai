@@ -261,8 +261,8 @@ export default function PublicTripPage({ params }: { params: Promise<{ id: strin
                                         )}
                                         {activity.estimatedCost !== undefined && (
                                           <span className="flex items-center gap-1.5 text-gold">
-                                            <DollarSign size={14} />
-                                            ${activity.estimatedCost} est.
+                                            <span className="text-[10px]">{trip.quickFacts?.currencySymbol || '$'}</span>
+                                            {activity.estimatedCost} est.
                                           </span>
                                         )}
                                       </div>
@@ -300,7 +300,7 @@ export default function PublicTripPage({ params }: { params: Promise<{ id: strin
                           <p className="text-muted text-sm leading-relaxed mb-6">{hotel.description}</p>
                           <div className="flex items-center justify-between pt-4 border-t border-subtle/50">
                             <span className="text-2xl font-bold text-bright">
-                              ${hotel.pricePerNight}<span className="text-sm font-normal text-muted">/night</span>
+                              {trip.quickFacts?.currencySymbol || '$'}{hotel.pricePerNight}<span className="text-sm font-normal text-muted">/night</span>
                             </span>
                             <span className="text-xs font-medium text-muted uppercase tracking-wider">Estimated</span>
                           </div>
@@ -315,7 +315,7 @@ export default function PublicTripPage({ params }: { params: Promise<{ id: strin
                         <div className="absolute inset-0 bg-gradient-to-br from-violet/5 via-transparent to-primary/5" />
                         <p className="text-muted font-medium uppercase tracking-wider mb-2">Total Estimated Cost</p>
                         <h3 className="text-6xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet">
-                          ${budgetBreakdown.total?.toLocaleString() || 0}
+                          {trip.quickFacts?.currencySymbol || '$'}{budgetBreakdown.total?.toLocaleString() || 0}
                         </h3>
                         <p className="text-dim text-sm mt-4">Based on {trip.days} days for {trip.budget} budget</p>
                       </div>
@@ -332,7 +332,7 @@ export default function PublicTripPage({ params }: { params: Promise<{ id: strin
                             <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl ${item.color} to-transparent opacity-20 rounded-bl-[100px] group-hover:opacity-40 transition-opacity`} />
                             <div className="flex items-center justify-between mb-4">
                               <span className="text-3xl">{item.icon}</span>
-                              <span className="text-2xl font-bold text-bright">${item.value?.toLocaleString() || 0}</span>
+                              <span className="text-2xl font-bold text-bright">{trip.quickFacts?.currencySymbol || '$'}{item.value?.toLocaleString() || 0}</span>
                             </div>
                             <p className="text-muted font-medium">{item.label}</p>
                           </div>

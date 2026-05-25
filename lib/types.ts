@@ -52,6 +52,7 @@ export interface Hotel {
 export interface QuickFacts {
   bestTimeToVisit: string;
   currency: string;
+  currencySymbol?: string;
   language: string;
   timezone: string;
   visaRequirements?: string;

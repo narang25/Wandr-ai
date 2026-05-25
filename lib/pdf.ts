@@ -86,7 +86,7 @@ export function downloadTripPDF(trip: Trip) {
       doc.text(item.label, x, y + 10 + row * 16);
       doc.setTextColor(248, 250, 252);
       doc.setFont('helvetica', 'bold');
-      doc.text(`$${(item.value || 0).toLocaleString()}`, x, y + 17 + row * 16);
+      doc.text(`${trip.quickFacts?.currencySymbol || '$'}${(item.value || 0).toLocaleString()}`, x, y + 17 + row * 16);
       doc.setFont('helvetica', 'normal');
     });
 
@@ -94,7 +94,7 @@ export function downloadTripPDF(trip: Trip) {
     doc.setFontSize(12);
     doc.setTextColor(0, 229, 255);
     doc.setFont('helvetica', 'bold');
-    doc.text(`Total: $${(trip.budgetBreakdown.total || 0).toLocaleString()}`, margin + contentWidth - 50, y + 35);
+    doc.text(`Total: ${trip.quickFacts?.currencySymbol || '$'}${(trip.budgetBreakdown.total || 0).toLocaleString()}`, margin + contentWidth - 50, y + 35);
     doc.setFont('helvetica', 'normal');
 
     y += 50;
@@ -139,7 +139,7 @@ export function downloadTripPDF(trip: Trip) {
           doc.setTextColor(251, 191, 36); // gold
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(9);
-          doc.text(`$${activity.estimatedCost}`, margin + contentWidth - 20, y + 7);
+          doc.text(`${trip.quickFacts?.currencySymbol || '$'}${activity.estimatedCost}`, margin + contentWidth - 20, y + 7);
         }
 
         // Description
@@ -181,7 +181,7 @@ export function downloadTripPDF(trip: Trip) {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       doc.setTextColor(148, 163, 184);
-      doc.text(`${hotel.tier} · $${hotel.pricePerNight}/night · ⭐ ${hotel.rating}`, margin + 6, y + 15);
+      doc.text(`${hotel.tier} · ${trip.quickFacts?.currencySymbol || '$'}${hotel.pricePerNight}/night · ⭐ ${hotel.rating}`, margin + 6, y + 15);
 
       y += 24;
     });
