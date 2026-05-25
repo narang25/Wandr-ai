@@ -318,4 +318,25 @@ Provide 4-6 realistic activities with real coordinates for ${trip.destination}. 
   }
 );
 
+// DELETE /api/trips/:id - Delete a trip
+router.delete('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const trip = await Trip.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.user!.userId,
+    });
+
+    if (!trip) {
+      res.status(404).json({ error: 'Trip not found' });
+      return;
+    }
+
+    res.json({ message: 'Trip deleted successfully' });
+  } catch (error) {
+    console.error('Delete trip error:', error);
+    res.status(500).json({ error: 'Failed to delete trip' });
+  }
+});
+
 export default router;
+

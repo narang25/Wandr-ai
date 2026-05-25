@@ -1,16 +1,22 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Trip } from '@/lib/types';
-import { MapPin, Calendar, Clock, DollarSign } from 'lucide-react';
+import { api } from '@/lib/api';
+import { MapPin, Calendar, Clock, DollarSign, Trash2 } from 'lucide-react';
 
 interface TripCardProps {
   trip: Trip;
+  onDelete?: () => void;
 }
 
-export function TripCard({ trip }: TripCardProps) {
-  // Determine gradient based on status
+export function TripCard({ trip, onDelete }: TripCardProps) {
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
   const gradientClass =
     trip.status === 'ready'
       ? 'from-primary/20 to-violet/20'
@@ -27,9 +33,34 @@ export function TripCard({ trip }: TripCardProps) {
       ? 'danger'
       : 'primary';
 
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!showConfirm) {
+      setShowConfirm(true);
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      await api.deleteTrip(trip._id);
+      onDelete?.();
+    } catch (err) {
+      console.error('Failed to delete trip:', err);
+    } finally {
+      setIsDeleting(false);
+      setShowConfirm(false);
+    }
+  };
+
+  const handleCancelDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowConfirm(false);
+  };
+
   return (
     <Link href={trip.status === 'generating' || trip.status === 'pending' ? `/trips/${trip._id}/generating` : `/trips/${trip._id}`}>
-      <Card hoverLift className="h-full flex flex-col overflow-hidden group">
+      <Card hoverLift className="h-full flex flex-col overflow-hidden group relative">
         {/* Gradient Header */}
         <div className={`h-32 bg-gradient-to-br ${gradientClass} relative`}>
           <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500" />
@@ -37,6 +68,35 @@ export function TripCard({ trip }: TripCardProps) {
             <Badge variant={badgeVariant} className="capitalize shadow-md backdrop-blur-md bg-void/70 border-subtle">
               {trip.status}
             </Badge>
+          </div>
+
+          {/* Delete Button */}
+          <div className="absolute top-4 left-4 z-10">
+            {showConfirm ? (
+              <div className="flex gap-2" onClick={(e) => e.preventDefault()}>
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="px-3 py-1.5 rounded-lg bg-danger text-white text-xs font-bold hover:bg-danger/80 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {isDeleting ? '...' : 'Confirm'}
+                </button>
+                <button
+                  onClick={handleCancelDelete}
+                  className="px-3 py-1.5 rounded-lg bg-card/80 backdrop-blur-md text-muted text-xs font-bold border border-subtle hover:text-bright transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleDelete}
+                className="p-2 rounded-lg bg-void/60 backdrop-blur-md text-muted border border-subtle hover:text-danger hover:border-danger/30 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+                title="Delete trip"
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
           </div>
         </div>
 

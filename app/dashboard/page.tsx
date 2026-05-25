@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTrip } from '@/hooks/useTrip';
 import { Button } from '@/components/ui/Button';
 import { TripCard } from '@/components/features/trips/TripCard';
-import { Plane, MapPin, Calendar, Plus, Sparkles, Compass } from 'lucide-react';
+import { Plane, MapPin, Calendar, Plus, Sparkles, Compass, User } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, Variants } from 'framer-motion';
@@ -55,6 +55,13 @@ export default function DashboardPage() {
             </h1>
             <p className="text-muted text-lg">Where is your next adventure taking you?</p>
           </div>
+          <Link
+            href="/profile"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-card/60 backdrop-blur-md border border-subtle text-muted hover:text-bright hover:border-primary/40 transition-all duration-200 text-sm font-medium shrink-0"
+          >
+            <User size={18} />
+            Profile
+          </Link>
         </motion.header>
 
         {/* Plan New Trip Banner - Massive Hero */}
@@ -137,7 +144,7 @@ export default function DashboardPage() {
             >
               {trips.map((trip) => (
                 <motion.div key={trip._id} variants={itemVariants}>
-                  <TripCard trip={trip} />
+                  <TripCard trip={trip} onDelete={fetchTrips} />
                 </motion.div>
               ))}
             </motion.div>

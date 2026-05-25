@@ -23,6 +23,7 @@
     "helmet": "^8.2.0",
     "ics": "^3.12.0",
     "jsonwebtoken": "^9.0.3",
+    "jspdf": "^4.2.1",
     "leaflet": "^1.9.4",
     "leaflet-defaulticon-compatibility": "^0.1.2",
     "lucide-react": "^1.16.0",

@@ -12,12 +12,38 @@ import { Card } from '@/components/ui/Card';
 import { 
   MapPin, Calendar, DollarSign, Clock, Map, 
   ChevronLeft, Info, Compass, Share2,
-  Trash2, Plus, RefreshCw, X
+  Trash2, Plus, RefreshCw, X, FileText
 } from 'lucide-react';
 import { ChatWidget } from '@/components/features/chat/ChatWidget';
 import { MapView } from '@/components/features/trips/MapView';
 import { WeatherWidget } from '@/components/features/trips/WeatherWidget';
 import { downloadTripCalendar } from '@/lib/calendar';
+import { downloadTripPDF } from '@/lib/pdf';
+
+const CATEGORY_MAP: Record<string, { emoji: string; style: string }> = {
+  'Food': { emoji: '🍜', style: 'bg-gold/10 text-gold border-gold/20' },
+  'Dining': { emoji: '🍽️', style: 'bg-gold/10 text-gold border-gold/20' },
+  'Culture': { emoji: '🏛️', style: 'bg-violet/10 text-violet border-violet/20' },
+  'History': { emoji: '📜', style: 'bg-violet/10 text-violet border-violet/20' },
+  'Adventure': { emoji: '🏔️', style: 'bg-[#10B981]/10 text-[#10B981] border-[#10B981]/20' },
+  'Shopping': { emoji: '🛍️', style: 'bg-[#F43F5E]/10 text-[#F43F5E] border-[#F43F5E]/20' },
+  'Nature': { emoji: '🌿', style: 'bg-[#10B981]/10 text-[#10B981] border-[#10B981]/20' },
+  'Nightlife': { emoji: '🌙', style: 'bg-violet/10 text-violet border-violet/20' },
+  'Wellness': { emoji: '🧘', style: 'bg-primary/10 text-primary border-primary/20' },
+  'Logistics': { emoji: '🚕', style: 'bg-muted/10 text-muted border-muted/20' },
+  'Transport': { emoji: '✈️', style: 'bg-primary/10 text-primary border-primary/20' },
+  'Custom': { emoji: '⭐', style: 'bg-gold/10 text-gold border-gold/20' },
+};
+
+function getCategoryEmoji(category: string): string {
+  const key = Object.keys(CATEGORY_MAP).find(k => category?.toLowerCase().includes(k.toLowerCase()));
+  return key ? CATEGORY_MAP[key].emoji : '📍';
+}
+
+function getCategoryStyle(category: string): string {
+  const key = Object.keys(CATEGORY_MAP).find(k => category?.toLowerCase().includes(k.toLowerCase()));
+  return key ? CATEGORY_MAP[key].style : 'bg-subtle text-bright';
+}
 
 export default function TripPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -94,13 +120,17 @@ export default function TripPage({ params }: { params: Promise<{ id: string }> }
               </h1>
             </div>
             
-            <div className="flex gap-4 shrink-0">
-              <Button onClick={() => downloadTripCalendar(trip as any)} variant="ghost" className="rounded-2xl px-6 py-4 border-subtle/50 bg-card/50 shadow-lg hover:shadow-primary/20 hover:border-primary/50">
-                <Calendar size={20} />
-                Export
+            <div className="flex gap-3 shrink-0 flex-wrap">
+              <Button onClick={() => downloadTripPDF(trip as any)} variant="ghost" className="rounded-2xl px-5 py-3 border-subtle/50 bg-card/50 shadow-lg hover:shadow-violet/20 hover:border-violet/50">
+                <FileText size={18} />
+                PDF
               </Button>
-              <Button variant="primary" className="rounded-2xl px-6 py-4 shadow-lg shadow-primary/20">
-                <Share2 size={20} />
+              <Button onClick={() => downloadTripCalendar(trip as any)} variant="ghost" className="rounded-2xl px-5 py-3 border-subtle/50 bg-card/50 shadow-lg hover:shadow-primary/20 hover:border-primary/50">
+                <Calendar size={18} />
+                Calendar
+              </Button>
+              <Button variant="primary" className="rounded-2xl px-5 py-3 shadow-lg shadow-primary/20">
+                <Share2 size={18} />
                 Share
               </Button>
             </div>
@@ -438,8 +468,8 @@ function ItineraryTab({ itinerary, tripId, onUpdate }: { itinerary: DayPlan[]; t
                           <Clock size={16} />
                           {activity.time}
                         </span>
-                        <span className="px-3 py-1 rounded-lg text-xs uppercase font-bold tracking-wider bg-subtle text-bright border border-subtle/50">
-                          {activity.category}
+                        <span className={`px-3 py-1 rounded-lg text-xs uppercase font-bold tracking-wider border border-subtle/50 ${getCategoryStyle(activity.category)}`}>
+                          {getCategoryEmoji(activity.category)} {activity.category}
                         </span>
                       </div>
                       <h3 className="text-2xl font-bold text-bright mb-3 break-words">{activity.name}</h3>

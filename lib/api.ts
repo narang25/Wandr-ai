@@ -89,6 +89,13 @@ class ApiClient {
       body: JSON.stringify({ dayNumber, instructions }),
     });
   }
+
+  async deleteTrip(id: string) {
+    return this.request<{ message: string }>(`/api/trips/${id}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const api = new ApiClient();
+
