@@ -103,18 +103,20 @@ router.post('/:id/generate', generateLimiter, async (req: AuthRequest, res: Resp
       try {
         const aiData = await generateItinerary(trip);
         
-        trip.itinerary = aiData.itinerary || [];
-        trip.budgetBreakdown = aiData.budgetBreakdown || {};
-        trip.hotels = aiData.hotels || [];
-        trip.quickFacts = aiData.quickFacts || {};
-        trip.status = 'ready';
-        
-        await trip.save();
-        console.log(`Trip ${trip._id} generated successfully`);
+        const freshTrip = await Trip.findById(trip._id);
+        if (freshTrip) {
+          freshTrip.itinerary = aiData.itinerary || [];
+          freshTrip.budgetBreakdown = aiData.budgetBreakdown || {};
+          freshTrip.hotels = aiData.hotels || [];
+          freshTrip.quickFacts = aiData.quickFacts || {};
+          freshTrip.status = 'ready';
+          
+          await freshTrip.save();
+          console.log(`Trip ${trip._id} generated successfully`);
+        }
       } catch (error) {
         console.error(`Background generation failed for trip ${trip._id}:`, error);
-        trip.status = 'error';
-        await trip.save();
+        await Trip.findByIdAndUpdate(trip._id, { status: 'error' });
       }
     })();
   } catch (error) {
@@ -335,6 +337,135 @@ router.delete('/:id', async (req: AuthRequest, res: Response): Promise<void> => 
   } catch (error) {
     console.error('Delete trip error:', error);
     res.status(500).json({ error: 'Failed to delete trip' });
+  }
+});
+
+// POST /api/trips/:id/duplicate - Duplicate a trip
+router.post('/:id/duplicate', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const originalTrip = await Trip.findOne({
+      _id: req.params.id,
+      userId: req.user!.userId,
+    });
+
+    if (!originalTrip) {
+      res.status(404).json({ error: 'Trip not found' });
+      return;
+    }
+
+    const duplicatedTrip = new Trip({
+      userId: req.user!.userId,
+      destination: originalTrip.destination,
+      startDate: originalTrip.startDate,
+      days: originalTrip.days,
+      budget: originalTrip.budget,
+      interests: originalTrip.interests,
+      status: originalTrip.status,
+      itinerary: originalTrip.itinerary,
+      budgetBreakdown: originalTrip.budgetBreakdown,
+      hotels: originalTrip.hotels,
+      quickFacts: originalTrip.quickFacts,
+    });
+
+    await duplicatedTrip.save();
+    res.status(201).json({ trip: duplicatedTrip });
+  } catch (error) {
+    console.error('Duplicate trip error:', error);
+    res.status(500).json({ error: 'Failed to duplicate trip' });
+  }
+});
+
+// POST /api/trips/:id/packing-list - Generate AI packing list
+router.post('/:id/packing-list', generateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const trip = await Trip.findOne({
+      _id: req.params.id,
+      userId: req.user!.userId,
+    });
+
+    if (!trip) {
+      res.status(404).json({ error: 'Trip not found' });
+      return;
+    }
+
+    const groqKey = process.env.GROQ_API_KEY;
+    if (!groqKey) {
+      res.status(500).json({ error: 'AI service not configured' });
+      return;
+    }
+
+    const packingPrompt = `Generate a smart packing list for a ${trip.days}-day trip to ${trip.destination}.
+Budget: ${trip.budget}
+Interests: ${trip.interests.join(', ')}
+
+You MUST respond with ONLY a valid JSON object matching this structure:
+{
+  "categories": [
+    {
+      "name": "Essentials",
+      "emoji": "📋",
+      "items": ["Passport", "Travel insurance docs", "Phone charger"]
+    },
+    {
+      "name": "Clothing",
+      "emoji": "👕",
+      "items": ["Light jacket", "Comfortable shoes"]
+    }
+  ]
+}
+
+Include 5-7 categories with 4-8 items each. Categories should include: Essentials, Clothing, Toiletries, Electronics, and destination-specific items. Tailor the list to the destination's climate and the traveler's interests.`;
+
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${groqKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: 'You are a travel assistant that outputs valid JSON only.' },
+          { role: 'user', content: packingPrompt },
+        ],
+        temperature: 0.7,
+        response_format: { type: 'json_object' },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate packing list');
+    }
+
+    const data = await response.json();
+    const parsed = JSON.parse(data.choices[0].message.content);
+    res.json({ packingList: parsed });
+  } catch (error) {
+    console.error('Packing list error:', error);
+    res.status(500).json({ error: 'Failed to generate packing list' });
+  }
+});
+
+// PUT /api/trips/:id/share - Toggle trip visibility
+router.put('/:id/share', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const trip = await Trip.findOne({
+      _id: req.params.id,
+      userId: req.user!.userId,
+    });
+
+    if (!trip) {
+      res.status(404).json({ error: 'Trip not found' });
+      return;
+    }
+
+    trip.isPublic = !trip.isPublic;
+    await trip.save();
+    
+    res.json({ trip });
+  } catch (error) {
+    console.error('Share trip error:', error);
+    res.status(500).json({ error: 'Failed to share trip' });
   }
 });
 

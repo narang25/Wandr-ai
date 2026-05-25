@@ -6,14 +6,15 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Trip } from '@/lib/types';
 import { api } from '@/lib/api';
-import { MapPin, Calendar, Clock, DollarSign, Trash2 } from 'lucide-react';
+import { MapPin, Calendar, Clock, DollarSign, Trash2, Copy } from 'lucide-react';
 
 interface TripCardProps {
   trip: Trip;
   onDelete?: () => void;
+  onDuplicate?: () => void;
 }
 
-export function TripCard({ trip, onDelete }: TripCardProps) {
+export function TripCard({ trip, onDelete, onDuplicate }: TripCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -58,6 +59,17 @@ export function TripCard({ trip, onDelete }: TripCardProps) {
     setShowConfirm(false);
   };
 
+  const handleDuplicate = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await api.duplicateTrip(trip._id);
+      onDuplicate?.();
+    } catch (err) {
+      console.error('Failed to duplicate trip:', err);
+    }
+  };
+
   return (
     <Link href={trip.status === 'generating' || trip.status === 'pending' ? `/trips/${trip._id}/generating` : `/trips/${trip._id}`}>
       <Card hoverLift className="h-full flex flex-col overflow-hidden group relative">
@@ -89,13 +101,22 @@ export function TripCard({ trip, onDelete }: TripCardProps) {
                 </button>
               </div>
             ) : (
-              <button
-                onClick={handleDelete}
-                className="p-2 rounded-lg bg-void/60 backdrop-blur-md text-muted border border-subtle hover:text-danger hover:border-danger/30 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
-                title="Delete trip"
-              >
-                <Trash2 size={14} />
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDuplicate}
+                  className="p-2 rounded-lg bg-void/60 backdrop-blur-md text-muted border border-subtle hover:text-primary hover:border-primary/30 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+                  title="Duplicate trip"
+                >
+                  <Copy size={14} />
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="p-2 rounded-lg bg-void/60 backdrop-blur-md text-muted border border-subtle hover:text-danger hover:border-danger/30 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+                  title="Delete trip"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
             )}
           </div>
         </div>

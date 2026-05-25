@@ -7,6 +7,7 @@ import mongoose from 'mongoose';
 import authRoutes from './routes/auth';
 import tripsRoutes from './routes/trips';
 import chatRoutes from './routes/chat';
+import publicRoutes from './routes/public';
 import { generalLimiter } from './middleware/rateLimiter';
 
 // Load env from backend/.env
@@ -35,6 +36,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/trips', tripsRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/public', publicRoutes);
 
 // Connect to MongoDB and start server
 const MONGODB_URI = process.env.MONGODB_URI || '';

@@ -12,11 +12,13 @@ import { Card } from '@/components/ui/Card';
 import { 
   MapPin, Calendar, DollarSign, Clock, Map, 
   ChevronLeft, Info, Compass, Share2,
-  Trash2, Plus, RefreshCw, X, FileText
+  Trash2, Plus, RefreshCw, X, FileText, Package, Check
 } from 'lucide-react';
 import { ChatWidget } from '@/components/features/chat/ChatWidget';
 import { MapView } from '@/components/features/trips/MapView';
 import { WeatherWidget } from '@/components/features/trips/WeatherWidget';
+import { CurrencyConverter } from '@/components/features/trips/CurrencyConverter';
+import { PackingList } from '@/components/features/trips/PackingList';
 import { downloadTripCalendar } from '@/lib/calendar';
 import { downloadTripPDF } from '@/lib/pdf';
 
@@ -49,7 +51,10 @@ export default function TripPage({ params }: { params: Promise<{ id: string }> }
   const router = useRouter();
   const { id } = use(params);
   const { currentTrip, fetchTrip, isLoading, error } = useTrip();
-  const [activeTab, setActiveTab] = useState<'itinerary' | 'map' | 'hotels' | 'budget'>('itinerary');
+  const [activeTab, setActiveTab] = useState<'itinerary' | 'map' | 'hotels' | 'budget' | 'packing'>('itinerary');
+
+  const [isSharing, setIsSharing] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetchTrip(id);
@@ -58,6 +63,29 @@ export default function TripPage({ params }: { params: Promise<{ id: string }> }
   const refreshTrip = useCallback(() => {
     fetchTrip(id);
   }, [id, fetchTrip]);
+
+  const handleShare = async () => {
+    if (!currentTrip) return;
+    
+    // If not public yet, toggle it
+    if (!currentTrip.isPublic) {
+      setIsSharing(true);
+      try {
+        await api.toggleTripSharing(currentTrip._id);
+        refreshTrip(); // Get updated trip with isPublic=true
+      } catch (err) {
+        console.error('Failed to share trip:', err);
+      } finally {
+        setIsSharing(false);
+      }
+    }
+    
+    // Copy public link to clipboard
+    const publicUrl = `${window.location.origin}/public/trips/${currentTrip._id}`;
+    navigator.clipboard.writeText(publicUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   if (isLoading || !currentTrip) {
     return (
@@ -129,9 +157,14 @@ export default function TripPage({ params }: { params: Promise<{ id: string }> }
                 <Calendar size={18} />
                 Calendar
               </Button>
-              <Button variant="primary" className="rounded-2xl px-5 py-3 shadow-lg shadow-primary/20">
-                <Share2 size={18} />
-                Share
+              <Button 
+                variant="primary" 
+                className="rounded-2xl px-5 py-3 shadow-lg shadow-primary/20 transition-all"
+                onClick={handleShare}
+                disabled={isSharing}
+              >
+                {copied ? <Check size={18} /> : <Share2 size={18} />}
+                {copied ? 'Copied Link!' : (trip.isPublic ? 'Copy Link' : 'Share')}
               </Button>
             </div>
           </div>
@@ -173,7 +206,7 @@ export default function TripPage({ params }: { params: Promise<{ id: string }> }
         <div className="flex-1 min-w-0">
           {/* Tabs */}
           <div className="flex gap-2 p-1.5 bg-card/40 backdrop-blur-md border border-subtle rounded-2xl w-fit mb-10 overflow-x-auto no-scrollbar max-w-full">
-            {['itinerary', 'map', 'hotels', 'budget'].map((tab) => (
+            {['itinerary', 'map', 'hotels', 'budget', 'packing'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab as any)}
@@ -206,42 +239,45 @@ export default function TripPage({ params }: { params: Promise<{ id: string }> }
               {activeTab === 'map' && <MapView itinerary={trip.itinerary} centerLat={trip.quickFacts?.location?.lat} centerLng={trip.quickFacts?.location?.lng} />}
               {activeTab === 'hotels' && <HotelsTab hotels={trip.hotels} />}
               {activeTab === 'budget' && <BudgetTab breakdown={trip.budgetBreakdown} />}
+              {activeTab === 'packing' && <PackingList tripId={trip._id} />}
             </motion.div>
           </AnimatePresence>
         </div>
 
-        {/* Sidebar Summary */}
-        <div className="w-full lg:w-80 shrink-0 hidden lg:block">
-          <div className="sticky top-24">
-            <Card className="p-8 bg-card/60 backdrop-blur-xl border-subtle/50 shadow-2xl">
-              <h3 className="font-display text-2xl font-bold text-bright mb-6 flex items-center gap-2">
-                <Compass className="text-primary" size={24} />
-                Overview
-              </h3>
-              <div className="space-y-5">
-                <div className="flex justify-between items-center border-b border-subtle/50 pb-4">
-                  <span className="text-muted font-medium">Duration</span>
-                  <span className="font-bold text-bright">{trip.days} Days</span>
-                </div>
-                <div className="flex justify-between items-center border-b border-subtle/50 pb-4">
-                  <span className="text-muted font-medium">Total Est. Cost</span>
-                  <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet text-lg">
-                    ${trip.budgetBreakdown?.total?.toLocaleString() || 0}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center pb-2">
-                  <span className="text-muted font-medium">Activities</span>
-                  <span className="font-bold text-bright px-3 py-1 bg-subtle rounded-lg">
-                    {trip.itinerary?.reduce((acc: number, day: any) => acc + (day.activities?.length || 0), 0) || 0}
-                  </span>
-                </div>
+        {/* Right Column: Widgets */}
+        <div className="w-full lg:w-80 shrink-0 space-y-6">
+          <Card className="p-8 bg-card/60 backdrop-blur-xl border-subtle/50 shadow-2xl">
+            <h3 className="font-display text-2xl font-bold text-bright mb-6 flex items-center gap-2">
+              <Compass className="text-primary" size={24} />
+              Overview
+            </h3>
+            <div className="space-y-5">
+              <div className="flex justify-between items-center border-b border-subtle/50 pb-4">
+                <span className="text-muted font-medium">Duration</span>
+                <span className="font-bold text-bright">{trip.days} Days</span>
               </div>
-            </Card>
-
-            <div className="mt-8">
-              <WeatherWidget lat={trip.quickFacts?.location?.lat} lng={trip.quickFacts?.location?.lng} />
+              <div className="flex justify-between items-center border-b border-subtle/50 pb-4">
+                <span className="text-muted font-medium">Total Est. Cost</span>
+                <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet text-lg">
+                  ${trip.budgetBreakdown?.total?.toLocaleString() || 0}
+                </span>
+              </div>
+              <div className="flex justify-between items-center pb-2">
+                <span className="text-muted font-medium">Activities</span>
+                <span className="font-bold text-bright px-3 py-1 bg-subtle rounded-lg">
+                  {trip.itinerary?.reduce((acc: number, day: any) => acc + (day.activities?.length || 0), 0) || 0}
+                </span>
+              </div>
             </div>
-          </div>
+          </Card>
+          
+          {trip.quickFacts?.location && (
+            <WeatherWidget 
+              lat={trip.quickFacts.location.lat} 
+              lng={trip.quickFacts.location.lng} 
+            />
+          )}
+          <CurrencyConverter />
         </div>
 
       </div>

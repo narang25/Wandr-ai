@@ -21,6 +21,7 @@ export interface Activity {
     lat: number;
     lng: number;
   };
+  duration?: string;
 }
 
 export interface DayPlan {
@@ -53,6 +54,7 @@ export interface QuickFacts {
   currency: string;
   language: string;
   timezone: string;
+  visaRequirements?: string;
   location: {
     lat: number;
     lng: number;
@@ -72,6 +74,7 @@ export interface Trip {
   budgetBreakdown: BudgetBreakdown;
   hotels: Hotel[];
   quickFacts: QuickFacts;
+  isPublic: boolean;
   createdAt: string;
   updatedAt: string;
 }

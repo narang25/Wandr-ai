@@ -95,6 +95,28 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  async duplicateTrip(id: string) {
+    return this.request<{ trip: import('./types').Trip }>(`/api/trips/${id}/duplicate`, {
+      method: 'POST',
+    });
+  }
+
+  async getPackingList(tripId: string) {
+    return this.request<{ packingList: { categories: Array<{ name: string; emoji: string; items: string[] }> } }>(`/api/trips/${tripId}/packing-list`, {
+      method: 'POST',
+    });
+  }
+
+  async toggleTripSharing(id: string) {
+    return this.request<{ trip: import('./types').Trip }>(`/api/trips/${id}/share`, {
+      method: 'PUT',
+    });
+  }
+
+  async getPublicTrip(id: string) {
+    return this.request<{ trip: import('./types').Trip }>(`/api/public/trips/${id}`);
+  }
 }
 
 export const api = new ApiClient();

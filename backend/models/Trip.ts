@@ -13,6 +13,7 @@ export interface ITrip extends Document {
   budgetBreakdown: any;
   hotels: any[];
   quickFacts: any;
+  isPublic: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -34,6 +35,7 @@ const tripSchema = new Schema<ITrip>(
     budgetBreakdown: { type: Schema.Types.Mixed, default: {} },
     hotels: { type: [], default: [] },
     quickFacts: { type: Schema.Types.Mixed, default: {} },
+    isPublic: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

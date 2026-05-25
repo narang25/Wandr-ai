@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTrip } from '@/hooks/useTrip';
 import { Button } from '@/components/ui/Button';
 import { TripCard } from '@/components/features/trips/TripCard';
-import { Plane, MapPin, Calendar, Plus, Sparkles, Compass, User } from 'lucide-react';
+import { Plane, MapPin, Calendar, Plus, Sparkles, Compass, User, Search, Filter } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, Variants } from 'framer-motion';
@@ -28,6 +28,9 @@ export default function DashboardPage() {
   const { trips, isLoading, error, fetchTrips } = useTrip();
   const router = useRouter();
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
   useEffect(() => {
     fetchTrips();
   }, [fetchTrips]);
@@ -35,6 +38,12 @@ export default function DashboardPage() {
   const tripsPlanned = trips.length;
   const uniqueCountries = new Set(trips.map((t) => t.destination)).size;
   const daysTraveled = trips.reduce((sum, t) => sum + t.days, 0);
+
+  const filteredTrips = trips.filter(trip => {
+    const matchesSearch = trip.destination.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || trip.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <main className="min-h-screen bg-void pt-28 pb-20 px-6 sm:px-8 relative overflow-hidden">
@@ -113,6 +122,34 @@ export default function DashboardPage() {
           ))}
         </motion.section>
 
+        {/* Search & Filter Row */}
+        <motion.section variants={itemVariants} className="flex flex-col sm:flex-row gap-4 pt-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" size={18} />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search destinations..."
+              className="w-full bg-card/50 backdrop-blur-md border border-subtle text-bright pl-12 pr-4 py-3.5 rounded-2xl focus:outline-none focus:border-primary placeholder:text-muted/50 transition-colors"
+            />
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {['all', 'ready', 'generating', 'pending', 'error'].map((status) => (
+              <button
+                key={status}
+                onClick={() => setStatusFilter(status)}
+                className={`px-4 py-2 rounded-xl text-sm font-bold capitalize transition-all cursor-pointer ${
+                  statusFilter === status
+                    ? 'bg-primary text-void'
+                    : 'bg-card/50 text-muted border border-subtle hover:text-bright'
+                }`}
+              >
+                {status}
+              </button>
+            ))}
+          </div>
+        </motion.section>
+
         {/* Trips List */}
         <motion.section variants={itemVariants} className="pt-8">
           <div className="flex items-center justify-between mb-8">
@@ -135,19 +172,33 @@ export default function DashboardPage() {
                 Try Again
               </Button>
             </div>
-          ) : trips.length > 0 ? (
+          ) : filteredTrips.length > 0 ? (
             <motion.div 
               variants={containerVariants}
               initial="hidden"
               animate="show"
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
             >
-              {trips.map((trip) => (
+              {filteredTrips.map((trip) => (
                 <motion.div key={trip._id} variants={itemVariants}>
-                  <TripCard trip={trip} onDelete={fetchTrips} />
+                  <TripCard trip={trip} onDelete={fetchTrips} onDuplicate={fetchTrips} />
                 </motion.div>
               ))}
             </motion.div>
+          ) : trips.length > 0 ? (
+            <div className="text-center py-24 px-6 bg-card/40 backdrop-blur-lg border border-subtle rounded-[2rem] relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent pointer-events-none" />
+              <div className="w-24 h-24 rounded-full bg-subtle/30 flex items-center justify-center mx-auto mb-6 text-muted border border-subtle backdrop-blur-md">
+                <Search size={40} className="opacity-50" />
+              </div>
+              <h3 className="text-2xl font-display font-bold text-bright mb-3">No trips match your search</h3>
+              <p className="text-muted text-lg max-w-md mx-auto mb-10">
+                Try adjusting your search query or status filter.
+              </p>
+              <Button size="lg" variant="ghost" onClick={() => { setSearchQuery(''); setStatusFilter('all'); }}>
+                Clear Filters
+              </Button>
+            </div>
           ) : (
             <div className="text-center py-24 px-6 bg-card/40 backdrop-blur-lg border border-subtle rounded-[2rem] relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent pointer-events-none" />
