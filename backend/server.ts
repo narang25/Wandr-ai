@@ -17,7 +17,7 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 const CORS_ORIGINS = process.env.CORS_ORIGINS 
   ? process.env.CORS_ORIGINS.split(',') 
-  : ['http://localhost:3000', process.env.NEXT_PUBLIC_API_URL].filter(Boolean);
+  : (['http://localhost:3000', process.env.NEXT_PUBLIC_API_URL].filter(Boolean) as string[]);
 
 // Middleware
 app.use(helmet());
