@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTrip } from '@/hooks/useTrip';
 import { Button } from '@/components/ui/Button';
 import { TripCard } from '@/components/features/trips/TripCard';
+import { Globe } from '@/components/ui/Globe';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Plane, MapPin, Calendar, Plus, Sparkles, Compass, User, Search, Filter } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -45,6 +47,13 @@ export default function DashboardPage() {
     return matchesSearch && matchesStatus;
   });
 
+  // Extract coordinates for globe markers from trips that have location data
+  const globeMarkers = useMemo(() => {
+    return trips
+      .filter(t => t.quickFacts?.location?.lat && t.quickFacts?.location?.lng)
+      .map(t => [t.quickFacts.location.lat, t.quickFacts.location.lng] as [number, number]);
+  }, [trips]);
+
   return (
     <main className="min-h-screen bg-void pt-28 pb-20 px-6 sm:px-8 relative overflow-hidden">
       {/* Background Glow */}
@@ -64,13 +73,16 @@ export default function DashboardPage() {
             </h1>
             <p className="text-muted text-lg">Where is your next adventure taking you?</p>
           </div>
-          <Link
-            href="/profile"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-card/60 backdrop-blur-md border border-subtle text-muted hover:text-bright hover:border-primary/40 transition-all duration-200 text-sm font-medium shrink-0"
-          >
-            <User size={18} />
-            Profile
-          </Link>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <Link
+              href="/profile"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-card/60 backdrop-blur-md border border-subtle text-muted hover:text-bright hover:border-primary/40 transition-all duration-200 text-sm font-medium shrink-0"
+            >
+              <User size={18} />
+              Profile
+            </Link>
+          </div>
         </motion.header>
 
         {/* Plan New Trip Banner - Massive Hero */}
@@ -81,7 +93,7 @@ export default function DashboardPage() {
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/20 via-void to-violet/10 opacity-70 group-hover:opacity-100 transition-opacity duration-500" />
               
               <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-                <div className="max-w-2xl">
+                <div className="flex-1 max-w-xl">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-bold tracking-wide mb-4 border border-primary/20">
                     <Sparkles size={14} /> AI-POWERED ITINERARIES
                   </div>
@@ -91,12 +103,17 @@ export default function DashboardPage() {
                   <p className="text-muted text-lg max-w-xl leading-relaxed">
                     Let our intelligent assistant build a bespoke itinerary, calculate your budget, and find the perfect hotels in seconds.
                   </p>
-                </div>
-                <div className="w-full md:w-auto flex justify-start md:justify-end shrink-0">
-                  <div className="flex items-center gap-3 bg-white text-void px-8 py-4 rounded-2xl font-bold text-lg group-hover:scale-105 transition-transform duration-300 shadow-[0_0_20px_rgba(255,255,255,0.3)] group-hover:shadow-[0_0_30px_rgba(0,229,255,0.5)]">
-                    <Plus size={24} />
-                    Plan New Trip
+                  <div className="mt-8">
+                    <div className="inline-flex items-center gap-3 bg-bright text-void px-8 py-4 rounded-2xl font-bold text-lg group-hover:scale-105 transition-transform duration-300 shadow-[0_0_20px_rgba(var(--color-bright),0.1)] group-hover:shadow-[0_0_30px_rgba(0,229,255,0.5)]">
+                      <Plus size={24} />
+                      Plan New Trip
+                    </div>
                   </div>
+                </div>
+
+                {/* 3D Globe */}
+                <div className="hidden md:flex items-center justify-center w-72 lg:w-80 shrink-0">
+                  <Globe markers={globeMarkers} size={320} />
                 </div>
               </div>
             </div>

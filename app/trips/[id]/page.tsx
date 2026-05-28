@@ -4,6 +4,7 @@ import { useEffect, useState, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTrip } from '@/hooks/useTrip';
+import { useParallax } from '@/hooks/useParallax';
 import { Trip, DayPlan, Hotel, Activity } from '@/lib/types';
 import { api } from '@/lib/api';
 import { Spinner } from '@/components/ui/Spinner';
@@ -55,6 +56,7 @@ export default function TripPage({ params }: { params: Promise<{ id: string }> }
 
   const [isSharing, setIsSharing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const parallaxOffset = useParallax(0.3, 150);
 
   useEffect(() => {
     fetchTrip(id);
@@ -72,17 +74,49 @@ export default function TripPage({ params }: { params: Promise<{ id: string }> }
       setIsSharing(true);
       try {
         await api.toggleTripSharing(currentTrip._id);
-        refreshTrip(); // Get updated trip with isPublic=true
+        // Do not call refreshTrip() here as it causes a full page loading spinner flash
+        currentTrip.isPublic = true; // Optimistic update
       } catch (err) {
         console.error('Failed to share trip:', err);
+        setIsSharing(false);
+        return; // Don't copy if we failed to make it public
       } finally {
         setIsSharing(false);
       }
     }
     
-    // Copy public link to clipboard
+    // Copy public link to clipboard with fallback
     const publicUrl = `${window.location.origin}/public/trips/${currentTrip._id}`;
-    navigator.clipboard.writeText(publicUrl);
+    
+    const fallbackCopyTextToClipboard = (text: string) => {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      // Avoid scrolling to bottom
+      textArea.style.top = "0";
+      textArea.style.left = "0";
+      textArea.style.position = "fixed";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+      } catch (err) {
+        console.error('Fallback copy failed', err);
+      }
+      document.body.removeChild(textArea);
+    };
+
+    if (!navigator.clipboard) {
+      fallbackCopyTextToClipboard(publicUrl);
+    } else {
+      try {
+        await navigator.clipboard.writeText(publicUrl);
+      } catch (err) {
+        console.error('Clipboard API failed, using fallback', err);
+        fallbackCopyTextToClipboard(publicUrl);
+      }
+    }
+
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -112,10 +146,25 @@ export default function TripPage({ params }: { params: Promise<{ id: string }> }
 
   return (
     <main className="min-h-screen bg-void pb-24 relative overflow-hidden">
-      {/* Dynamic Blurred Background */}
-      <div className="absolute top-0 inset-x-0 h-[600px] bg-gradient-to-b from-primary/10 via-violet/5 to-void pointer-events-none" />
-      <div className="absolute top-0 right-0 w-1/2 h-96 bg-primary/20 blur-[150px] pointer-events-none rounded-full" />
-      <div className="absolute top-40 left-0 w-1/2 h-96 bg-violet/20 blur-[150px] pointer-events-none rounded-full" />
+      {/* Rich Gradient Background — Parallax Layer */}
+      <div 
+        className="absolute top-0 inset-x-0 h-[700px] overflow-hidden pointer-events-none"
+        style={{ transform: `translateY(${parallaxOffset * 0.5}px)` }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/15 via-violet/10 to-void" />
+        {/* Decorative pattern */}
+        <div className="absolute inset-0 opacity-[0.03]" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+        }} />
+      </div>
+      <div 
+        className="absolute top-0 right-0 w-1/2 h-96 bg-primary/15 blur-[150px] pointer-events-none rounded-full" 
+        style={{ transform: `translateY(${parallaxOffset * 0.3}px)` }}
+      />
+      <div 
+        className="absolute top-40 left-0 w-1/2 h-96 bg-violet/15 blur-[150px] pointer-events-none rounded-full"
+        style={{ transform: `translateY(${parallaxOffset * 0.7}px)` }}
+      />
 
       {/* Hero Section */}
       <section className="relative pt-28 pb-12 px-6 sm:px-8 z-10">
@@ -130,7 +179,7 @@ export default function TripPage({ params }: { params: Promise<{ id: string }> }
 
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 bg-card/30 backdrop-blur-xl border border-subtle/50 p-8 sm:p-12 rounded-[3rem] shadow-2xl">
             <div className="flex-1">
-              <div className="flex flex-wrap gap-2 mb-6">
+              <div className="flex flex-wrap gap-2 mb-6" style={{ transform: `translateY(${parallaxOffset * -0.15}px)` }}>
                 <span className="px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-bold tracking-wide border border-primary/20">
                   {trip.days} DAYS
                 </span>
@@ -143,7 +192,10 @@ export default function TripPage({ params }: { params: Promise<{ id: string }> }
                   </span>
                 ))}
               </div>
-              <h1 className="text-5xl sm:text-6xl md:text-7xl font-display font-bold text-bright tracking-tight leading-tight">
+              <h1 
+                className="text-5xl sm:text-6xl md:text-7xl font-display font-bold text-bright tracking-tight leading-tight"
+                style={{ transform: `translateY(${parallaxOffset * -0.08}px)` }}
+              >
                 {trip.destination}
               </h1>
             </div>
@@ -598,7 +650,7 @@ function HotelsTab({ hotels, currencySymbol = '$' }: { hotels: Hotel[], currency
   );
 }
 
-function BudgetTab({ breakdown }: { breakdown: any }) {
+function BudgetTab({ breakdown, currencySymbol = '$' }: { breakdown: any; currencySymbol?: string }) {
   if (!breakdown) {
     return <div className="text-muted text-lg bg-card/30 p-8 rounded-3xl border border-subtle">No budget data available.</div>;
   }

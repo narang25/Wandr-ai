@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { Tilt3DCard } from "@/components/ui/Tilt3DCard";
+import { Globe } from "@/components/ui/Globe";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const features = [
   {
@@ -178,6 +181,7 @@ export default function Home() {
 
           {/* Nav Actions */}
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <Link
               href="/login"
               className="px-5 py-2 text-sm font-medium text-muted hover:text-bright transition-colors duration-200"
@@ -286,6 +290,11 @@ export default function Home() {
               </a>
             </div>
 
+            {/* 3D Globe in Hero */}
+            <div className="animate-fade-in delay-700 mt-16 flex justify-center">
+              <Globe markers={[[28.6139, 77.209], [48.8566, 2.3522], [35.6762, 139.6503], [40.7128, -74.006]]} size={280} className="mx-auto" />
+            </div>
+
             {/* Social proof */}
             <div className="animate-fade-in delay-700 mt-14 flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-dim">
               <div className="flex items-center gap-2">
@@ -359,27 +368,28 @@ export default function Home() {
             {/* Feature cards grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {features.map((feature, i) => (
-                <div
-                  key={i}
-                  className="feature-card group relative bg-card/40 backdrop-blur-xl border border-subtle rounded-[2rem] p-7 animate-border-glow"
-                  style={{ animationDelay: `${i * 0.6}s` }}
-                >
-                  {/* Icon */}
-                  <div className="text-4xl mb-5">{feature.icon}</div>
+                <Tilt3DCard key={i} maxTilt={8} scale={1.03}>
+                  <div
+                    className="feature-card group relative bg-card/40 backdrop-blur-xl border border-subtle rounded-[2rem] p-7 animate-border-glow h-full"
+                    style={{ animationDelay: `${i * 0.6}s` }}
+                  >
+                    {/* Icon */}
+                    <div className="text-4xl mb-5">{feature.icon}</div>
 
-                  {/* Title */}
-                  <h3 className="text-lg font-semibold text-bright mb-2 group-hover:text-primary transition-colors duration-300">
-                    {feature.title}
-                  </h3>
+                    {/* Title */}
+                    <h3 className="text-lg font-semibold text-bright mb-2 group-hover:text-primary transition-colors duration-300">
+                      {feature.title}
+                    </h3>
 
-                  {/* Description */}
-                  <p className="text-sm text-muted leading-relaxed">
-                    {feature.description}
-                  </p>
+                    {/* Description */}
+                    <p className="text-sm text-muted leading-relaxed">
+                      {feature.description}
+                    </p>
 
-                  {/* Hover glow accent */}
-                  <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-b from-primary/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-                </div>
+                    {/* Hover glow accent */}
+                    <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-b from-primary/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                  </div>
+                </Tilt3DCard>
               ))}
             </div>
           </div>

@@ -9,10 +9,10 @@ export const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Generate endpoints: max 3 requests per 5 minutes per IP
+// Generate endpoints: max 15 requests per 5 minutes per IP
 export const generateLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
-  max: 3,
+  max: 15,
   message: { error: 'Too many generation requests, please try again after 5 minutes' },
   standardHeaders: true,
   legacyHeaders: false,

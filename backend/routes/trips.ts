@@ -93,32 +93,38 @@ router.post('/:id/generate', generateLimiter, async (req: AuthRequest, res: Resp
       return;
     }
 
-    // Set status to generating and return immediately so client can show loading screen
+    // Set status to generating
     trip.status = 'generating';
     await trip.save();
-    res.json({ message: 'Generation started', trip });
 
-    // Background process for AI generation
-    (async () => {
-      try {
-        const aiData = await generateItinerary(trip);
+    // VERCEL FIX: Await the generation synchronously so the serverless function doesn't exit early.
+    try {
+      const aiData = await generateItinerary(trip);
+      
+      const freshTrip = await Trip.findById(trip._id);
+      if (freshTrip) {
+        freshTrip.itinerary = aiData.itinerary || [];
+        freshTrip.budgetBreakdown = aiData.budgetBreakdown || {};
+        freshTrip.hotels = aiData.hotels || [];
+        freshTrip.quickFacts = aiData.quickFacts || {};
+        freshTrip.status = 'ready';
         
-        const freshTrip = await Trip.findById(trip._id);
-        if (freshTrip) {
-          freshTrip.itinerary = aiData.itinerary || [];
-          freshTrip.budgetBreakdown = aiData.budgetBreakdown || {};
-          freshTrip.hotels = aiData.hotels || [];
-          freshTrip.quickFacts = aiData.quickFacts || {};
-          freshTrip.status = 'ready';
-          
-          await freshTrip.save();
-          console.log(`Trip ${trip._id} generated successfully`);
-        }
-      } catch (error) {
-        console.error(`Background generation failed for trip ${trip._id}:`, error);
-        await Trip.findByIdAndUpdate(trip._id, { status: 'error' });
+        freshTrip.markModified('itinerary');
+        freshTrip.markModified('budgetBreakdown');
+        freshTrip.markModified('hotels');
+        freshTrip.markModified('quickFacts');
+        
+        await freshTrip.save();
+        console.log(`Trip ${trip._id} generated successfully`);
+        res.json({ message: 'Generation complete', trip: freshTrip });
+      } else {
+        res.status(404).json({ error: 'Trip not found during generation' });
       }
-    })();
+    } catch (error) {
+      console.error(`Generation failed for trip ${trip._id}:`, error);
+      await Trip.findByIdAndUpdate(trip._id, { status: 'error' });
+      res.status(500).json({ error: 'Failed to generate itinerary' });
+    }
   } catch (error) {
     console.error('Generate trip error:', error);
     res.status(500).json({ error: 'Failed to start generation' });
@@ -276,7 +282,7 @@ You MUST respond with ONLY a valid JSON object matching this exact structure:
   ]
 }
 
-Provide 4-6 realistic activities with real coordinates for ${trip.destination}. Do not include markdown or conversational text.`;
+Provide 5-7 realistic activities spread across morning, afternoon, and evening with real coordinates for ${trip.destination}. Include a mix of sightseeing, meals, cultural experiences, and leisure. Do not include markdown or conversational text.`;
 
       const groqKey = process.env.GROQ_API_KEY;
       if (!groqKey) {

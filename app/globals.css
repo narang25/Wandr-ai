@@ -1,18 +1,49 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Light Mode (Beige theme) */
+  --void: #FDFBF7;
+  --card: #FFFFFF;
+  --subtle: #E8E3DB;
+  --primary: #0096AA; /* Darker cyan for contrast */
+  --violet: #7C3AED;
+  --gold: #D97706;
+  --bright: #1C1917;
+  --muted: #57534E;
+  --dim: #A8A29E;
+  --danger: #DC2626;
+  --success: #059669;
+}
+
+.dark {
+  /* Dark Mode */
+  --void: #02040A;
+  --card: #0A101C;
+  --subtle: #162032;
+  --primary: #00E5FF;
+  --violet: #8B5CF6;
+  --gold: #FBBF24;
+  --bright: #F8FAFC;
+  --muted: #94A3B8;
+  --dim: #475569;
+  --danger: #EF4444;
+  --success: #10B981;
+}
 
 @theme inline {
-  --color-void: #02040A;
-  --color-card: #0A101C;
-  --color-subtle: #162032;
-  --color-primary: #00E5FF;
-  --color-violet: #8B5CF6;
-  --color-gold: #FBBF24;
-  --color-bright: #F8FAFC;
-  --color-muted: #94A3B8;
-  --color-dim: #475569;
-  --color-danger: #EF4444;
-  --color-success: #10B981;
+  --color-void: var(--void);
+  --color-card: var(--card);
+  --color-subtle: var(--subtle);
+  --color-primary: var(--primary);
+  --color-violet: var(--violet);
+  --color-gold: var(--gold);
+  --color-bright: var(--bright);
+  --color-muted: var(--muted);
+  --color-dim: var(--dim);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
 
   --font-display: var(--font-playfair), serif;
   --font-body: var(--font-dm-sans), sans-serif;

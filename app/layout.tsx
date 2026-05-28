@@ -3,6 +3,7 @@ import { Playfair_Display, DM_Sans } from "next/font/google";
 import { Providers } from "@/components/layout/Providers";
 import { AuthGuard } from "@/components/layout/AuthGuard";
 import { Toaster } from "react-hot-toast";
+import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -32,21 +33,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${playfair.variable} ${dmSans.variable}`}>
+    <html lang="en" className={`${playfair.variable} ${dmSans.variable}`} suppressHydrationWarning>
       <body className="min-h-screen bg-void text-bright font-body antialiased">
-        <Providers>
-          <AuthGuard>{children}</AuthGuard>
-        </Providers>
-        <Toaster 
-          position="bottom-center"
-          toastOptions={{
-            style: {
-              background: '#1A2744',
-              color: '#E8F4FF',
-              border: '1px solid #3D5070',
-            }
-          }}
-        />
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+          <Providers>
+            <AuthGuard>{children}</AuthGuard>
+          </Providers>
+          <Toaster 
+            position="bottom-center"
+            toastOptions={{
+              style: {
+                background: 'var(--color-card)',
+                color: 'var(--color-bright)',
+                border: '1px solid var(--color-subtle)',
+              }
+            }}
+          />
+        </ThemeProvider>
       </body>
     </html>
   );

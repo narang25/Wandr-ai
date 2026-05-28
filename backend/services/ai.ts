@@ -68,7 +68,7 @@ You MUST respond with ONLY a valid JSON object matching the exact structure belo
   }
 }
 
-Ensure the itinerary has exactly ${trip.days} days. Generate realistic, detailed activities and costs suited for a ${trip.budget} budget.
+Ensure the itinerary has exactly ${trip.days} days. Each day MUST have 5 to 7 activities spread across the full day (morning, afternoon, and evening). Generate realistic, detailed activities and costs suited for a ${trip.budget} budget. Include a mix of sightseeing, meals, cultural experiences, and leisure time.
 CRITICAL INSTRUCTION: ALL costs (in budgetBreakdown, activities, and hotels) MUST be calculated in the destination's LOCAL currency scale. Do NOT use USD values with a different symbol. Provide realistic numerical values for that specific currency (e.g., if the currency is INR, a meal might be 500-2000, not 10-20).
 CRITICAL INSTRUCTION: You MUST provide realistic "lat" and "lng" coordinates for the destination (in quickFacts.location) AND for every single activity (in activity.location). Do not leave them blank or omit them.
 `;
@@ -100,6 +100,7 @@ CRITICAL INSTRUCTION: You MUST provide realistic "lat" and "lng" coordinates for
   try {
     const generatedContent = data.choices[0].message.content;
     const parsed = JSON.parse(generatedContent);
+    console.log(`AI generation result — itinerary: ${parsed.itinerary?.length || 0} days, hotels: ${parsed.hotels?.length || 0}, budget total: ${parsed.budgetBreakdown?.total || 'N/A'}, quickFacts: ${parsed.quickFacts ? 'yes' : 'no'}`);
     return parsed;
   } catch (err) {
     console.error('JSON Parse Error:', err);

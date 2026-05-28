@@ -7,6 +7,7 @@ import { useTrip } from '@/hooks/useTrip';
 import { Button } from '@/components/ui/Button';
 import { StepIndicator } from '@/components/features/trips/StepIndicator';
 import { MapPin, Calendar, Wallet, Heart, Sparkles, ChevronLeft } from 'lucide-react';
+import { getCurrencySymbolForDestination } from '@/lib/currency';
 
 const INTEREST_OPTIONS = [
   'Food & Dining', 'Culture & History', 'Adventure', 'Shopping',
@@ -190,30 +191,35 @@ export default function NewTripPage() {
                 </div>
 
                 <div className="space-y-4 max-w-2xl mx-auto w-full">
-                  {BUDGET_OPTIONS.map((opt) => (
-                    <div
-                      key={opt.id}
-                      onClick={() => setBudget(opt.id)}
-                      className={`p-6 rounded-[2rem] border-2 cursor-pointer transition-all duration-300 flex items-center gap-6 group ${
-                        budget === opt.id
-                          ? 'border-gold bg-gold/5 scale-[1.02] shadow-[0_0_30px_rgba(251,191,36,0.15)]'
-                          : 'border-subtle bg-card/60 backdrop-blur-md hover:border-gold/40 hover:bg-white/5'
-                      }`}
-                    >
-                      <div className={`text-4xl transition-transform duration-300 ${budget === opt.id ? 'scale-110' : 'grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100'}`}>
-                        {opt.icon}
+                  {BUDGET_OPTIONS.map((opt) => {
+                    const currencySymbol = getCurrencySymbolForDestination(destination);
+                    const dynamicPrice = opt.price.replace(/\$/g, currencySymbol);
+                    
+                    return (
+                      <div
+                        key={opt.id}
+                        onClick={() => setBudget(opt.id)}
+                        className={`p-6 rounded-[2rem] border-2 cursor-pointer transition-all duration-300 flex items-center gap-6 group ${
+                          budget === opt.id
+                            ? 'border-gold bg-gold/5 scale-[1.02] shadow-[0_0_30px_rgba(251,191,36,0.15)]'
+                            : 'border-subtle bg-card/60 backdrop-blur-md hover:border-gold/40 hover:bg-white/5'
+                        }`}
+                      >
+                        <div className={`text-4xl transition-transform duration-300 ${budget === opt.id ? 'scale-110' : 'grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100'}`}>
+                          {opt.icon}
+                        </div>
+                        <div className="text-left flex-1">
+                          <h3 className="font-bold text-bright text-xl mb-1">{opt.label}</h3>
+                          <p className="text-muted text-sm">{opt.desc}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className={`text-sm font-bold tracking-wide px-4 py-2 rounded-xl ${budget === opt.id ? 'bg-gold/20 text-gold' : 'bg-subtle text-dim'}`}>
+                            {dynamicPrice}
+                          </span>
+                        </div>
                       </div>
-                      <div className="text-left flex-1">
-                        <h3 className="font-bold text-bright text-xl mb-1">{opt.label}</h3>
-                        <p className="text-muted text-sm">{opt.desc}</p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <span className={`text-sm font-bold tracking-wide px-4 py-2 rounded-xl ${budget === opt.id ? 'bg-gold/20 text-gold' : 'bg-subtle text-dim'}`}>
-                          {opt.price}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </motion.div>
             )}
