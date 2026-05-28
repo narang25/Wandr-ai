@@ -16,8 +16,9 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isLoading) return;
 
-    const isPublicPath = publicPaths.includes(pathname);
-    const isAuthPath = authPaths.includes(pathname);
+    const currentPath = pathname || '';
+    const isPublicPath = publicPaths.includes(currentPath);
+    const isAuthPath = authPaths.includes(currentPath);
 
     if (!user && !isPublicPath) {
       router.push('/login');
@@ -37,7 +38,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const isPublicPath = publicPaths.includes(pathname);
+  const currentPath = pathname || '';
+  const isPublicPath = publicPaths.includes(currentPath);
   if (!user && !isPublicPath) {
     return null;
   }
