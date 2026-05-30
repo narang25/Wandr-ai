@@ -48,8 +48,11 @@ export function ChatWidget({ tripId }: { tripId: string }) {
     const assistantMsgId = (Date.now() + 1).toString();
     setMessages((prev) => [...prev, { id: assistantMsgId, role: 'assistant', content: '' }]);
 
+    // Use the same base URL logic as the rest of the app
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5001');
+
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/chat/${tripId}`, {
+      const response = await fetch(`${apiBase}/api/chat/${tripId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -61,38 +64,69 @@ export function ChatWidget({ tripId }: { tripId: string }) {
         })
       });
 
-      if (!response.body) throw new Error('No stream available');
+      if (!response.ok) {
+        throw new Error(`Chat request failed: ${response.status}`);
+      }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
+      // Check if response is SSE stream or plain JSON
+      const contentType = response.headers.get('content-type') || '';
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      if (contentType.includes('text/event-stream') && response.body) {
+        // SSE streaming path
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let receivedContent = false;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              
-              if (data.type === 'delta') {
-                setMessages((prev) => 
-                  prev.map(m => m.id === assistantMsgId ? { ...m, content: m.content + data.text } : m)
-                );
-              } else if (data.type === 'done' || data.type === 'error') {
-                setIsTyping(false);
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  
+                  if (data.type === 'delta') {
+                    receivedContent = true;
+                    setMessages((prev) => 
+                      prev.map(m => m.id === assistantMsgId ? { ...m, content: m.content + data.text } : m)
+                    );
+                  } else if (data.type === 'done' || data.type === 'error') {
+                    if (data.type === 'error' && !receivedContent) {
+                      setMessages((prev) =>
+                        prev.map(m => m.id === assistantMsgId ? { ...m, content: data.text || 'Sorry, something went wrong.' } : m)
+                      );
+                    }
+                    setIsTyping(false);
+                  }
+                } catch (e) {
+                  // Ignore parse errors on incomplete chunks
+                }
               }
-            } catch (e) {
-              // Ignore
             }
           }
+        } finally {
+          setIsTyping(false);
         }
+      } else {
+        // Non-streaming JSON fallback (e.g. if Vercel buffers the SSE response)
+        const data = await response.json();
+        const reply = data.choices?.[0]?.message?.content || data.reply || data.text || 'Sorry, I could not generate a response.';
+        setMessages((prev) =>
+          prev.map(m => m.id === assistantMsgId ? { ...m, content: reply } : m)
+        );
+        setIsTyping(false);
       }
     } catch (error) {
       console.error('Chat error:', error);
+      // Show a user-friendly error in the chat bubble
+      setMessages((prev) =>
+        prev.map(m => m.id === assistantMsgId ? { ...m, content: 'Sorry, I encountered an error. Please try again.' } : m)
+      );
       setIsTyping(false);
     }
   };
